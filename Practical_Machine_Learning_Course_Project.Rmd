@@ -1,0 +1,172 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Michael Drobish"
+date: "June 2, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:\\Users\\Mike\\Documents\\Coursera Tutorial\\Data Science\\8 - Machine Learning\\Quiz and Projects\\Course Project")
+library(caret)
+library(rpart)
+library(ggplot2)
+library(rattle)
+library(randomForest)
+```
+
+#Executive Summary
+The goal of this project is to predict the manner in which a person performed excercise based on the data collected while a person excercised wearing devices such as Jawbone Up, Nike FuelBand, and Fitbit.  A person would be classified as class A, B, C, D, or E.  Class A means that the excercise was performed correctly, while other classifications indicate the type of errors.  (See Appendix A for more information.)
+
+I compared two prediction models, decision tree and random forest.  Both used 3-fold cross validation for the fit control.  As expected, the random forest model produced much better accuracy of 99.1% compared to just 50% of the decision tree.  The down side is that it took much longer to process the random forest.
+
+I re-ran the random forest with PCA preprocess.  PCA process lost only 0.9% of accuracy.  However, I chose to use random forest model without PCA preprocess.
+
+#Preparation
+```{r eval=FALSE}
+library(caret)
+library(rpart)
+library(randomForest)
+```
+```{r}
+raw.training <- read.csv("./pml-training.csv", head=TRUE, sep=",", na.strings=c("NA", "", "#DIV/0!"))
+raw.testing <- read.csv("./pml-testing.csv",head=TRUE, sep=",")
+data.training <- raw.training[, colSums(is.na(raw.training)) == 0]
+data.testing <- raw.testing[, colSums(is.na(raw.training)) == 0]
+data.training <- data.training[, -c(1:7)]
+data.testing <- data.testing[, -c(1:7)]
+```
+See Appendix B - Cleaning Data for more information on how I cleaned data.
+
+Create sub-training and test data from the training set.
+```{r}
+set.seed(23678)
+#Build sub-train and sub-test data from the training data
+data.training.inTrain <- createDataPartition(y=data.training$classe, p=0.7, list=FALSE)
+data.training.train <- data.training[data.training.inTrain,]
+data.training.test <- data.training[-data.training.inTrain,]
+```
+
+#Building Models 
+
+Let's use 3-fold cross validation when building models
+```{r}
+fitControl.cv3 <- trainControl(method="cv", number=3, verboseIter = FALSE)
+```
+
+
+###Model 1:  Decision Tree Model with 3-fold cross validation
+```{r}
+tree_model.train <- train(classe ~ ., data=data.training.train, method="rpart", trControl=fitControl.cv3)
+tree_model.predict <- predict(tree_model.train, newdata=data.training.test)
+tree_model.matrix <- confusionMatrix(data.training.test$classe, tree_model.predict)
+```
+See Appendix C - Building Models:  Outputs of Decision Tree Model with 3-fold cross validation
+
+
+###Model 2:  Random Forest with 3-fold cross validation
+```{r}
+rf_model.train <- train(classe ~ ., data=data.training.train, method="rf", trControl=fitControl.cv3)
+rf_model.predict <- predict(rf_model.train, newdata=data.training.test)
+rf_model.matrix <- confusionMatrix(data.training.test$classe, rf_model.predict)
+
+#print the final model
+#rf_model.fit$finalModel
+```
+See Appendix D - Building Models:  Outputs of Randon Forest Model with 3-fold cross validation
+
+###Compare Two Models
+```{r}
+data.frame(tree_model.matrix$overall, rf_model.matrix$overall)
+```
+
+The random forest model has much better accuracy of 99.1% compared to just 50% of the decision tree model.  So, we will use the random forest model.
+
+
+###Random Forest with PCA preprocess
+For fun, let's preprocess the data before running the random forest training 
+```{r}
+preProc <- preProcess(data.training.train[,-53], method="pca")
+trainPCA <- predict(preProc, data.training.train[,-53])
+trainPCA$classe <- data.training.train$classe
+
+testPCA <- predict(preProc, data.training.test[,-53])
+testPCA$classe <- data.training.test$classe
+
+rf_pca.train <-train(classe ~ ., data= trainPCA, method="rf")
+rf_pcs.predict <- predict(rf_pca.train, testPCA)
+rf_pcs.matrix <- confusionMatrix(rf_pcs.predict, testPCA$classe)
+rf_pcs.matrix$overall
+```
+
+#Submission
+```{r}
+final_prediction <- predict(rf_model.train, data.testing)
+final_prediction
+```
+
+
+
+#Appendix
+
+###Apendix A - About Data
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: 
+
+1.  Class A - exactly according to the specification
+2.  Class B - throwing the elbows to the front 
+3.  Class C - lifting the dumbbell only halfway
+4.  Class D - lowering the dumbbell only halfway
+5.  Class E - throwing the hips to the front
+
+The data for this project can be downloaded:
+
+1.  Training Data: <https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv>
+2.  Testing Data:  <https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv>
+
+
+###Appendix B - Cleaning Data
+
+1.  The raw training data contains 19,622 observations and 160 variables.
+2.  100 of those variables had NA values in all observations.  Therefore they were removed.
+3.  Following variables are also removed because they are irrelevant (X, user_name, raw_timestamp_part_1, raw_timestamp_part_2, cvtd_timestamp, new_window, and num_window)
+
+```{r eval=FALSE}
+training <- read.csv("./pml-training.csv", head=TRUE, sep=",", na.strings=c("NA", "", "#DIV/0!"))
+testing <- read.csv("./pml-testing.csv",head=TRUE, sep=",")
+
+data.training <- training[, colSums(is.na(training)) == 0]
+data.testing <- testing[, colSums(is.na(training)) == 0]
+
+data.training <- data.training[, -c(1:7)]
+data.testing <- data.testing[, -c(1:7)]
+
+```
+
+###Appendix C - Building Models:  Outputs of Decision Tree Model with 3-fold cross validation
+
+
+```{r eval=FALSE}
+library(rattle)
+```
+
+```{r}
+#print the training of the model
+print(tree_model.train$finalModel)
+fancyRpartPlot(tree_model.train$finalModel)
+
+#print the confusion Matrix of the prediction 
+tree_model.matrix
+
+```
+
+
+###Appendix D - Building Models:  Outputs of Random Forest Model with 3-fold cross validation
+
+```{r}
+#print the training of the model
+print(rf_model.train$finalModel)
+
+#print the confusion Matrix of the prediction 
+rf_model.matrix
+
+```
