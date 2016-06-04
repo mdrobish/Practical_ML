@@ -9,3 +9,4 @@ Contents of this repository:
     3.  Practical_Machine_Learning.Rmd - R markdown file of my analysis
     4.  Practical_Machine_Learning.html - compiled analysis in HTML
     5.  Practical_Machine_Learning.pdf - compiled analysis in PDF
+    6.  Practical_Machine_Learning.md - markdown file of my analysis
