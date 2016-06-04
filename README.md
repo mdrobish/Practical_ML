@@ -1,6 +1,6 @@
 # Practical Machine Learning Course Project
 
-To view my analysis, click this link <https://github.com/mdrobish/Practical_ML/blob/master/Practical_Machine_Learning_Course_Project.html>.
+To view my analysis, click this link [Practical_Machine_Learning_Course_Project.html](https://cdn.rawgit.com/mdrobish/Practical_ML/master/Practical_Machine_Learning_Course_Project.html).
 
 Contents of this repository:
 
